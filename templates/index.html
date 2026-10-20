@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="TripRescue helps travellers evaluate alternatives after a travel disruption.">
+  <title>TripRescue | Travel disruption recovery</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="nav wrap">
+    <a class="brand" href="/"><span class="brand-icon">↗</span><span>trip<span class="brand-accent">rescue</span></span></a>
+    <div class="nav-right"><span class="status-dot"></span><span>Travel recovery assistant</span><span class="pill">MVP DEMO</span></div>
+  </nav>
+  <main>
+    <section class="hero wrap">
+      <div class="hero-copy">
+        <div class="eyebrow"><span class="spark">✦</span> WHEN PLANS CHANGE, WE ADAPT</div>
+        <h1>Your journey<br>doesn't have to <em>stop.</em></h1>
+        <p class="hero-sub">A smarter way to recover from travel disruptions. Compare alternatives, protect your budget, and get a clear next-step plan.</p>
+        <div class="hero-points"><span>✓ Budget-aware options</span><span>✓ Recovery itinerary</span><span>✓ Clear next steps</span></div>
+      </div>
+      <div class="hero-art" aria-label="Abstract travel route illustration">
+        <div class="sun"></div><div class="route-line"></div><div class="plane">✈</div>
+        <div class="pin pin-one"><span>●</span><small>ORIGIN</small><b>Mangalore</b></div>
+        <div class="pin pin-two"><span>●</span><small>DESTINATION</small><b>Delhi</b></div>
+        <div class="mini-card"><span class="mini-icon">↻</span><div><b>Plan disrupted?</b><small>Find your next best move.</small></div></div>
+      </div>
+    </section>
+
+    <section class="workspace wrap">
+      <div class="section-heading"><div><div class="eyebrow">RECOVERY WORKSPACE</div><h2>Let's get you moving again.</h2></div><div class="step-label"><span>01</span> Tell us what changed</div></div>
+      <div class="workspace-grid">
+        <form id="recovery-form" class="form-card">
+          <div class="card-title"><span class="number">1</span><div><h3>Your disrupted trip</h3><p>Enter the basics. Sample data is used for this demo.</p></div></div>
+          <label class="field-label" for="disruption_type">What was disrupted?</label>
+          <div class="choice-row">
+            <label class="choice active"><input type="radio" name="disruption_type" value="flight" checked><span class="choice-icon">✈</span><span>Flight</span></label>
+            <label class="choice"><input type="radio" name="disruption_type" value="train"><span class="choice-icon">▰</span><span>Train</span></label>
+            <label class="choice"><input type="radio" name="disruption_type" value="hotel"><span class="choice-icon">⌂</span><span>Hotel</span></label>
+          </div>
+          <div class="field-grid">
+            <div class="field"><label for="origin">Starting from</label><input id="origin" name="origin" value="Mangalore" maxlength="80" required></div>
+            <div class="field"><label for="destination">Going to</label><input id="destination" name="destination" value="Delhi" maxlength="80" required></div>
+          </div>
+          <div class="field"><label for="disruption">What happened?</label><select id="disruption" name="disruption"><option>Service delayed by 3 hours</option><option>Flight cancelled unexpectedly</option><option>Train service cancelled</option><option>Hotel booking unavailable on arrival</option><option>Connection missed due to delay</option></select></div>
+          <div class="field-grid">
+            <div class="field"><label for="budget">Maximum extra budget (₹)</label><input id="budget" name="budget" type="number" min="1" step="any" value="5000" required></div>
+            <div class="field"><label for="max_extra_hours">Maximum journey time (hours)</label><input id="max_extra_hours" name="max_extra_hours" type="number" min="0" step="0.5" value="12" required></div>
+          </div>
+          <div class="field"><label for="priority">What matters most?</label><select id="priority" name="priority"><option value="balanced">Balanced: cost + time</option><option value="cheapest">Lowest cost</option><option value="fastest">Shortest journey</option><option value="reliable">Reliability</option></select></div>
+          <button class="primary-button" type="submit"><span>Build my recovery plan</span><span class="button-arrow">↗</span></button>
+          <p class="form-footnote">No bookings are changed or purchased. Always confirm details with the travel provider.</p>
+        </form>
+        <aside class="side-panel">
+          <div class="side-top"><div class="side-icon">✦</div><div><h3>What you'll get</h3><p>A practical plan, not just a list of links.</p></div></div>
+          <div class="benefit"><span class="benefit-icon">⌕</span><div><b>Alternatives ranked for you</b><p>Compare sample options against your budget and time limits.</p></div></div>
+          <div class="benefit"><span class="benefit-icon">◷</span><div><b>Clear recovery steps</b><p>Know what to verify before you make a change.</p></div></div>
+          <div class="benefit"><span class="benefit-icon">♡</span><div><b>Traveller-first decisions</b><p>Balance affordability, speed and reliability.</p></div></div>
+          <div class="safety-note"><span>ⓘ</span><p><b>Demo transparency</b><br>Schedules, providers and prices are simulated. This prototype does not access live bookings or guarantee availability.</p></div>
+        </aside>
+      </div>
+    </section>
+
+    <section id="results" class="results wrap hidden" aria-live="polite">
+      <div class="results-head"><div><div class="eyebrow">YOUR RECOVERY PLAN</div><h2 id="result-title">Recommended next steps</h2><p id="result-subtitle" class="muted"></p></div><button id="reset-button" class="secondary-button" type="button">Start again ↺</button></div>
+      <div id="notice" class="notice"></div>
+      <div class="result-grid"><div><div class="subheading"><span class="number">2</span><div><h3>Alternative options</h3><p>Ranked using transparent demo rules</p></div></div><div id="options-list" class="options-list"></div></div><div><div class="subheading"><span class="number">3</span><div><h3>Your action plan</h3><p>Recommended recovery sequence</p></div></div><div id="itinerary-list" class="itinerary-list"></div></div></div>
+      <div class="disclaimer">TripRescue is a decision-support prototype, not a booking service. Confirm schedules, fares, refunds and availability with official providers before taking action.</div>
+    </section>
+  </main>
+  <footer class="footer"><div class="wrap footer-inner"><a class="brand" href="/"><span class="brand-icon">↗</span><span>trip<span class="brand-accent">rescue</span></span></a><span>Built for DevHack 2026 · Travel Disruption Recovery</span><span>Prototype · Simulated data</span></div></footer>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
