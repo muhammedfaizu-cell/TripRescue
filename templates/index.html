@@ -71,7 +71,18 @@
       <div class="result-grid"><div><div class="subheading"><span class="number">2</span><div><h3>Alternative options</h3><p>Ranked using transparent demo rules</p></div></div><div id="options-list" class="options-list"></div></div><div><div class="subheading"><span class="number">3</span><div><h3>Your action plan</h3><p>Recommended recovery sequence</p></div></div><div id="itinerary-list" class="itinerary-list"></div></div></div>
       <div class="disclaimer">TripRescue is a decision-support prototype, not a booking service. Confirm schedules, fares, refunds and availability with official providers before taking action.</div>
     </section>
-  </main>
+
+<section id="flight-status" class="results wrap" aria-live="polite">
+  <div class="results-head">
+    <div>
+      <div class="eyebrow">LIVE FLIGHT STATUS</div>
+      <h2>Flight information</h2>
+      <p id="flight-status-message">No flight search yet.</p>
+    </div>
+  </div>
+  <div id="flight-status-list"></div>
+</section>
+</main>
   <footer class="footer"><div class="wrap footer-inner"><a class="brand" href="/"><span class="brand-icon">↗</span><span>trip<span class="brand-accent">rescue</span></span></a><span>Built for DevHack 2026 · Travel Disruption Recovery</span><span>Prototype · Simulated data</span></div></footer>
   <div id="toast" class="toast" role="status"></div>
   <script src="{{ url_for('static', filename='app.js') }}"></script>

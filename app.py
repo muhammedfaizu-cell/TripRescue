@@ -1,8 +1,68 @@
 
 from flask import Flask, render_template, request, jsonify
 from datetime import datetime
+import os
+import requests
+from pathlib import Path
+from functools import lru_cache
+from dotenv import load_dotenv
+
+load_dotenv(Path(__file__).with_name(".env"))
 
 app = Flask(__name__)
+
+
+@lru_cache(maxsize=256)
+def resolve_airport(location, api_key):
+    """Resolve a city, country, airport name or IATA code to an airport."""
+    value = location.strip()
+    known_airports = {
+        "mangalore": ("IXE", "Mangalore"),
+        "mangaluru": ("IXE", "Mangaluru"),
+        "bengaluru": ("BLR", "Bengaluru"),
+        "bangalore": ("BLR", "Bengaluru"),
+        "delhi": ("DEL", "Delhi"),
+        "new delhi": ("DEL", "Delhi"),
+        "mumbai": ("BOM", "Mumbai"),
+        "chennai": ("MAA", "Chennai"),
+        "hyderabad": ("HYD", "Hyderabad"),
+        "kochi": ("COK", "Kochi"),
+        "dubai": ("DXB", "Dubai"),
+        "doha": ("DOH", "Doha"),
+        "qatar": ("DOH", "Doha")
+    }
+    known = known_airports.get(value.casefold())
+    if known:
+        return {"iata_code": known[0], "airport_name": known[1]}
+
+    if len(value) == 3 and value.isalpha():
+        return {"iata_code": value.upper(), "airport_name": value.upper()}
+
+    response = requests.get(
+        "https://api.aviationstack.com/v1/airports",
+        params={"access_key": api_key, "search": value},
+        timeout=10
+    )
+    response.raise_for_status()
+    data = response.json()
+    if "error" in data:
+        raise ValueError("Airport search is unavailable.")
+
+    airports = [item for item in data.get("data", []) if item.get("iata_code")]
+    if not airports:
+        return None
+
+    query = value.casefold()
+    airports.sort(key=lambda item: (
+        0 if item.get("airport_name", "").casefold() == query else 1,
+        0 if item.get("airport_name", "").casefold().startswith(query) else 1,
+        0 if "international" in item.get("airport_name", "").casefold() else 1
+    ))
+    airport = airports[0]
+    return {
+        "iata_code": airport["iata_code"],
+        "airport_name": airport.get("airport_name") or airport["iata_code"]
+    }
 
 # DEMO DATA ONLY.
 # These prices, departure times and journey durations are simulated.
@@ -361,6 +421,93 @@ def health():
         "status": "ok",
         "app": "TripRescue MVP"
     })
+
+
+@app.get("/api/live-flights")
+def live_flights():
+    api_key = os.getenv("AVIATIONSTACK_API_KEY")
+
+    if not api_key:
+        return jsonify({
+            "error": "Aviationstack API key is not configured."
+        }), 500
+
+    dep_location = request.args.get("dep_location", "").strip()
+    arr_location = request.args.get("arr_location", "").strip()
+    dep_iata = request.args.get("dep_iata", "").strip().upper()
+    arr_iata = request.args.get("arr_iata", "").strip().upper()
+
+    if not (dep_location or dep_iata) or not (arr_location or arr_iata):
+        return jsonify({
+            "error": "Please provide both a departure and destination."
+        }), 400
+
+    try:
+        departure_airport = resolve_airport(dep_location or dep_iata, api_key)
+        arrival_airport = resolve_airport(arr_location or arr_iata, api_key)
+    except requests.RequestException as error:
+        status = error.response.status_code if error.response is not None else "unavailable"
+        return jsonify({
+            "error": f"Airport lookup failed (provider status {status}). Check the API key's Airports endpoint access."
+        }), 502
+    except ValueError:
+        return jsonify({
+            "error": "Airport lookup returned an invalid response."
+        }), 502
+
+    if not departure_airport or not arrival_airport:
+        return jsonify({
+            "error": "Could not find an airport for one of those locations. Try a nearby city or airport name."
+        }), 400
+
+    dep_iata = departure_airport["iata_code"]
+    arr_iata = arrival_airport["iata_code"]
+    try:
+        response = requests.get(
+            "https://api.aviationstack.com/v1/flights",
+            params={
+                "access_key": api_key,
+                "dep_iata": dep_iata,
+                "arr_iata": arr_iata,
+                "limit": 100
+            },
+            timeout=15
+        )
+        response.raise_for_status()
+        data = response.json()
+
+        if "error" in data:
+            return jsonify({
+                "error": "Aviationstack returned an API error.",
+                "details": data["error"]
+            }), 502
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        flights_today = [
+            flight for flight in data.get("data", [])
+            if str((flight.get("departure") or {}).get("scheduled", "")).startswith(today)
+        ]
+
+        return jsonify({
+            "source": "Aviationstack",
+            "departure": (
+                dep_location if dep_location and dep_location.upper() != dep_iata
+                else departure_airport["airport_name"]
+            ),
+            "arrival": (
+                arr_location if arr_location and arr_location.upper() != arr_iata
+                else arrival_airport["airport_name"]
+            ),
+            "flights": flights_today
+        })
+
+    except (requests.RequestException, ValueError):
+        return jsonify({
+            "error": "Could not retrieve flight data. Check the flight API status or try again later."
+        }), 502
+
+
+
 
 
 if __name__ == "__main__":

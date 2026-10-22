@@ -45,6 +45,7 @@ form.addEventListener('submit', async event => {
     document.querySelector('#options-list').innerHTML = data.options.map(renderOption).join('');
     document.querySelector('#itinerary-list').innerHTML = data.itinerary.map(renderItinerary).join('');
     results.classList.remove('hidden');
+    loadLiveFlights(payload.origin, payload.destination);
     results.scrollIntoView({behavior:'smooth', block:'start'});
     showToast('Your recovery plan is ready. Verify details before booking.');
   } catch (error) {
@@ -56,3 +57,73 @@ form.addEventListener('submit', async event => {
 document.querySelector('#reset-button').addEventListener('click', () => {
   results.classList.add('hidden'); form.scrollIntoView({behavior:'smooth', block:'start'});
 });
+async function loadLiveFlights(origin, destination) {
+  const message = document.querySelector('#flight-status-message');
+  const list = document.querySelector('#flight-status-list');
+
+  if (!message || !list) return;
+
+  const departure = origin || document.querySelector('#origin').value;
+  const arrival = destination || document.querySelector('#destination').value;
+
+  message.textContent = 'Loading live flight information...';
+  list.innerHTML = '';
+
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 20000);
+
+  try {
+    const params = new URLSearchParams({dep_location: departure, arr_location: arrival});
+    const response = await fetch(
+      `/api/live-flights?${params}`,
+      { signal: controller.signal }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Could not load flights.');
+    }
+
+    const flights = data.flights || [];
+
+    if (flights.length === 0) {
+      message.textContent = 'No matching flights were found.';
+      return;
+    }
+
+    message.textContent =
+      `Showing ${flights.length} flight(s) from ${data.departure} to ${data.arrival}.`;
+
+    list.innerHTML = flights.map(flight => {
+      const airline = flight.airline?.name || 'Unknown airline';
+      const flightNumber = flight.flight?.iata || 'Flight number unavailable';
+      const status = flight.flight_status || 'Status unavailable';
+      const departure = flight.departure?.scheduled
+        ? new Date(flight.departure.scheduled).toLocaleString()
+        : 'Time unavailable';
+      const arrival = flight.arrival?.scheduled
+        ? new Date(flight.arrival.scheduled).toLocaleString()
+        : 'Time unavailable';
+
+      const card = document.createElement('article');
+      card.className = 'option-card';
+      card.textContent =
+        `${airline} — ${flightNumber} | Status: ${status} | ` +
+        `Departure: ${departure} | Arrival: ${arrival}`;
+
+      return card.outerHTML;
+    }).join('');
+
+  } catch (error) {
+    message.textContent =
+      error.name === 'AbortError'
+        ? 'Flight information is taking too long to load. Please try again.'
+        : (error.message || 'Unable to load flight information. Please try again later.');
+    console.error('Flight status error:', error);
+  } finally {
+    window.clearTimeout(timeout);
+  }
+}
+
+loadLiveFlights();
